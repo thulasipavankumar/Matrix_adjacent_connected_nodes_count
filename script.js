@@ -23,14 +23,21 @@ var m = Array(r).fill(getRandomInt(2)).map(()=>Array(c).fill(getRandomInt(2)));
 var grid = clickableGrid(gridInput[0].length, gridInput.length,function(el,row,col,i){
     var columnIndex = col;
     el.innerHTML = gridInput[row][col];
-    entry(row,col,el);
+    getDiagonalConnectedVertices(row,col);
 
 });
-function fillElement({i:i,j:j}){
+function fillElement({i:i,j:j},classToFill){
     let table = document.getElementsByClassName("grid")[0];
     let rows = table.getElementsByTagName("tr");
     let cols = rows[i].getElementsByTagName("td");
-   timeout+=100;
+    cols[j].className = classToFill;
+   
+}
+const fillBlockWithUsed=({i:i,j:j})=>{
+    let table = document.getElementsByClassName("grid")[0];
+    let rows = table.getElementsByTagName("tr");
+    let cols = rows[i].getElementsByTagName("td");
+   timeout+=50;
    
     setTimeout(function(){ 
         cols[j].innerHTML = 1; 
@@ -58,27 +65,64 @@ const resetTheValuesInBoxes = () => {
     let rows = table.getElementsByTagName("tr");
     for(let row=0;row<rows.length;row++){
         let cols = rows[row].getElementsByTagName("td");
-        for(let col=0;col<cols.length;col++)
+        for(let col=0;col<cols.length;col++){
+            if(gridInput[row][col]==1)
+                fillElement({i:row,j:col},"block")
             cols[col].innerHTML = ""; 
+        }
     }
 }
 const printFinalResult = (maxCount) =>{
     var paragraph = document.getElementById("output");
     paragraph.innerText = "Final Count is "+maxCount;
 }
-
-const entry = (i, j) => {
+const findSquares = (i,j) => {
     resetAllValues();
-    pushInitialElement(i,j);
-    //setElementToVisited(i,j);
-    if(isEmptyBlock(i,j)){
-        return
+}
+const getAllConnectedVertices = (i,j)=>{
+    resetAllValues();
+    if(!isEmptyBlock(i,j)){
+        pushInitialElement(i,j);
     }
     while (hasMoreElements()) {
         let topElement = getTopOfStack();
         if(!isVisited(topElement.i,topElement.j)){
             setElementToVisited(topElement.i,topElement.j);
-            fillElement(topElement)
+            fillBlockWithUsed(topElement,"used")
+            finalCount.push(topElement);
+            traverse_Possible_Connected_Nodes(topElement.i, topElement.j);
+        }
+    }
+    printFinalResult(finalCount.length);
+    console.log(finalCount);
+}
+const getDiagonalConnectedVertices = (i,j)=>{
+    resetAllValues();
+    if(!isEmptyBlock(i,j)){
+        pushInitialElement(i,j);
+    }
+    while (hasMoreElements()) {
+        let topElement = getTopOfStack();
+        if(!isVisited(topElement.i,topElement.j)){
+            setElementToVisited(topElement.i,topElement.j);
+            fillBlockWithUsed(topElement,"used")
+            finalCount.push(topElement);
+            traverse_Possible_Diagonal_Connected_Nodes(topElement.i, topElement.j);
+        }
+    }
+    printFinalResult(finalCount.length);
+    console.log(finalCount);
+}
+const getAdjacent = (i, j) => {
+    resetAllValues();
+    if(!isEmptyBlock(i,j)){
+        pushInitialElement(i,j);
+    }
+    while (hasMoreElements()) {
+        let topElement = getTopOfStack();
+        if(!isVisited(topElement.i,topElement.j)){
+            setElementToVisited(topElement.i,topElement.j);
+            fillBlockWithUsed(topElement,"used")
             finalCount.push(topElement);
             traverse_Possible_Adjacent_Nodes(topElement.i, topElement.j);
         }
@@ -92,31 +136,51 @@ const isVisited = (i, j) => visitedArr[i][j];
 
 const tryLeft = (i, j) => {
     j--;
-    if (isValid(i, j)) 
+    if (isValidAndNotVisited(i, j)) 
+        temparr.push({ i: i, j: j });
+}
+const tryTopLeftDiagonal = (i, j) => {
+    i--;j--
+    if (isValidAndNotVisited(i, j)) 
         temparr.push({ i: i, j: j });
 }
 const tryRight = (i, j) => {
     j++;
-    if (isValid(i, j)) 
+    if (isValidAndNotVisited(i, j)) 
+        temparr.push({ i: i, j: j });
+}
+const tryTopRightDiagonal = (i, j) => {
+    i--;j++;
+    if (isValidAndNotVisited(i, j)) 
         temparr.push({ i: i, j: j });
 }
 const tryTop = (i, j) => {
     i--;
-    if (isValid(i, j)) 
+    if (isValidAndNotVisited(i, j)) 
         temparr.push({ i: i, j: j });
 }
 const tryBottom = (i, j) => {
     i++;
-    if (isValid(i, j)) 
+    if (isValidAndNotVisited(i, j)) 
+        temparr.push({ i: i, j: j });
+}
+const tryBottomLeftDiagonal = (i, j) => {
+    i++;j--;
+    if (isValidAndNotVisited(i, j)) 
+        temparr.push({ i: i, j: j });
+}
+const tryBottomRightDiagonal = (i, j) => {
+    i++;j++;
+    if (isValidAndNotVisited(i, j)) 
         temparr.push({ i: i, j: j });
 }
 const setElementToVisited = (i,j) =>{
     visitedArr[i][j] = true;
 }
-const isValid = (i, j) => {
+const isValidAndNotVisited = (i, j) => {
     if (i >= 0 && j >= 0 && i < n && j < n)
         if (!isVisited(i, j))
-            if (gridInput[i][j] === 1)
+            if (gridInput[i][j] === 1 && !isVisited(i,j))
                 return true;
     return false;
 }
@@ -125,6 +189,16 @@ const traverse_Possible_Adjacent_Nodes = (i, j) => {
     tryTop(i, j);
     tryLeft(i, j);
     tryRight(i, j);
+}
+const traverse_Possible_Connected_Nodes = (i, j) => {
+    traverse_Possible_Adjacent_Nodes(i,j);
+    traverse_Possible_Diagonal_Connected_Nodes
+}
+const traverse_Possible_Diagonal_Connected_Nodes = (i, j) => {
+    tryBottomLeftDiagonal(i, j);
+    tryBottomRightDiagonal(i, j);
+    tryTopLeftDiagonal(i, j);
+    tryTopRightDiagonal(i, j);
 }
 const getTopOfStack = () => temparr.pop();
 const hasMoreElements = () => temparr.length ? true : false;
